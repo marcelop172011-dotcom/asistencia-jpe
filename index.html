@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asistencia · Fundación Juntos por Ecuador</title>
+<!-- App de voluntarios · Elaborado por Claude · Revisado por Marcelo Peralta -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Librería gratuita para leer códigos QR con la cámara -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  /* Colores de la fundación */
+  :root { --teal:#1F7F77; --teal-claro:#EEF7F6; --amarillo:#F2C12E; --amarillo-claro:#FDF6E1; --texto:#1F1F1F; --gris:#5A5A5A; --borde:#D4D4D4; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Poppins',sans-serif; color:var(--texto); background:#fff; }
+  .pantalla { max-width:480px; margin:0 auto; min-height:100vh; padding:20px; display:flex; flex-direction:column; gap:16px; }
+  .oculto { display:none !important; }
+  .logo { display:flex; flex-direction:column; align-items:center; margin-top:40px; }
+  .logo b { font-size:44px; line-height:1; letter-spacing:-1px; }
+  .rayas { display:flex; gap:4px; margin-top:8px; } .rayas i { width:26px; height:7px; border-radius:4px; display:block; }
+  .logo small { font-size:12px; font-weight:600; letter-spacing:1.5px; margin-top:6px; }
+  h1 { margin:0; font-size:22px; } h2 { margin:0; font-size:20px; }
+  .sub { color:var(--gris); font-size:14px; }
+  label { font-size:14px; font-weight:500; }
+  input { width:100%; height:54px; border:1.5px solid var(--borde); border-radius:14px; padding:0 16px; font:inherit; font-size:17px; }
+  input:focus { outline:2px solid var(--teal); border-color:var(--teal); }
+  .btn { height:58px; border:none; border-radius:16px; background:var(--teal); color:#fff; font:inherit; font-size:17px; font-weight:600; width:100%; cursor:pointer; }
+  .btn-borde { background:#fff; color:var(--teal); border:2px solid var(--teal); font-size:15px; }
+  .btn-chico { height:44px; width:auto; padding:0 14px; font-size:13px; background:#fff; color:#3D3D3D; border:1.5px solid var(--borde); border-radius:12px; }
+  .error { color:#A8164A; font-size:14px; min-height:20px; }
+  .fila { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .opciones { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; }
+  .opcion { min-height:64px; border-radius:14px; border:1.5px solid var(--borde); background:#fff; font:inherit; font-size:15px; padding:8px; cursor:pointer; }
+  .opcion.activa { border:2.5px solid var(--teal); background:var(--teal-claro); color:#1F6A64; font-weight:700; }
+  .opcion small { display:block; font-size:12px; font-weight:400; color:var(--gris); }
+  #lector { border-radius:20px; overflow:hidden; background:#2B2F33; min-height:300px; }
+  .aviso { border-radius:16px; padding:16px 18px; display:flex; align-items:center; gap:14px; font-size:15px; }
+  .aviso.verde { background:var(--teal); color:#fff; }
+  .aviso.amarillo { background:var(--amarillo-claro); border:3px solid var(--amarillo); color:#3D2E00; flex-direction:column; text-align:center; }
+  .aviso.rojo { background:#FDECF1; border:2px solid #E2366B; color:#7A1035; }
+  .aviso b { font-size:18px; display:block; }
+  .resultado { width:100%; text-align:left; padding:12px 14px; border:1px solid #E6E6E6; border-radius:12px; background:#fff; font:inherit; font-size:15px; cursor:pointer; }
+  .resultado small { display:block; color:var(--gris); font-size:12px; }
+  .pie { margin-top:auto; text-align:center; font-size:12px; color:#6B6B6B; }
+</style>
+</head>
+<body>
+
+<!-- ===== PANTALLA 1: INGRESO ===== -->
+<section id="pIngreso" class="pantalla">
+  <div class="logo"><b style="font-size:30px; line-height:1.2; letter-spacing:-0.5px; text-align:center">Fundación<br>Juntos por Ecuador</b><div class="rayas"><i style="background:#3FB3A8"></i><i style="background:#F2C12E"></i><i style="background:#E2366B"></i></div></div>
+  <div style="text-align:center"><h1>Asistencia de voluntarios</h1><div class="sub">Ingrese con el PIN del mes</div></div>
+  <div><label for="nombre">Su nombre</label><input id="nombre" autocomplete="name" maxlength="40"></div>
+  <div><label for="pin">PIN</label><input id="pin" inputmode="numeric" maxlength="6" autocomplete="off" style="letter-spacing:8px; font-size:24px; text-align:center"></div>
+  <div id="errIngreso" class="error" role="alert"></div>
+  <button id="btnIngresar" class="btn">Ingresar</button>
+  <div class="pie">Fundación Juntos por Ecuador · Cambiamos vidas con amor</div>
+</section>
+
+<!-- ===== PANTALLA 2: TOMAR ASISTENCIA ===== -->
+<section id="pAsistencia" class="pantalla oculto">
+  <div class="fila">
+    <div><div id="saludo" class="sub"></div><h2>Tomar asistencia</h2></div>
+    <button id="btnSalir" class="btn btn-chico">Salir</button>
+  </div>
+  <div id="opciones" class="opciones"></div>
+  <div id="sinOpciones" class="aviso rojo oculto">Hoy no hay actividades abiertas.</div>
+  <div id="lector"></div>
+  <div id="aviso" class="oculto" role="status"></div>
+  <div class="fila sub"><span>Registrados por usted hoy</span><b id="contador" style="font-size:22px; color:var(--texto)">0</b></div>
+  <button id="btnBuscar" class="btn btn-borde">Olvidó su carné: buscar por nombre o N.º</button>
+  <!-- Búsqueda de respaldo -->
+  <div id="cajaBuscar" class="oculto" style="display:flex; flex-direction:column; gap:10px">
+    <label for="txtBuscar">Apellido, nombre o N.º de carné</label>
+    <input id="txtBuscar" autocomplete="off">
+    <div id="resultados" style="display:flex; flex-direction:column; gap:8px"></div>
+  </div>
+</section>
+
+<script>
+// ===== AJUSTE: pegue aquí la URL del puente (la que termina en /exec) =====
+const PUENTE = 'https://script.google.com/macros/s/AKfycbwdm9mUn6L2OYQRqixra3nZUzDMVkbCRj759JhKeS7odnUfX3vFszUMsFKGdKksIurhrg/exec';
+
+// ===== Utilidades =====
+const $ = id => document.getElementById(id);
+let pase = null, opcionElegida = null, lector = null, ocupado = false, ultimoCodigo = '', ultimoMomento = 0;
+
+// Guarda y lee datos en el celular sin romper la app si el navegador lo bloquea
+function guardar(clave, valor) { try { localStorage.setItem(clave, valor); } catch (e) {} }
+function leer(clave) { try { return localStorage.getItem(clave); } catch (e) { return null; } }
+function borrar(clave) { try { localStorage.removeItem(clave); } catch (e) {} }
+
+// Envía una petición al puente de Apps Script y devuelve la respuesta
+async function pedir(datos) {
+  const url = PUENTE + '?' + new URLSearchParams(datos).toString();
+  const r = await fetch(url);
+  return r.json();
+}
+
+// Sonido corto: agudo si quedó registrado, grave si es duplicado o error
+function sonido(tipo) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator(), vol = ctx.createGain();
+    osc.frequency.value = tipo === 'ok' ? 880 : 330;
+    vol.gain.value = 0.2; osc.connect(vol); vol.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + (tipo === 'ok' ? 0.15 : 0.4));
+  } catch (e) {}
+}
+
+// Contador del día en este celular (se reinicia cada día)
+function hoyTexto() { return new Date().toLocaleDateString('es-EC'); }
+function contador(sumar) {
+  let n = leer('cont_fecha') === hoyTexto() ? Number(leer('cont_n') || 0) : 0;
+  if (sumar) { n++; guardar('cont_fecha', hoyTexto()); guardar('cont_n', n); }
+  $('contador').textContent = n;
+}
+
+// ===== Ingreso con nombre y PIN =====
+$('nombre').value = leer('voluntario') || '';
+$('btnIngresar').onclick = async () => {
+  $('errIngreso').textContent = '';
+  $('btnIngresar').disabled = true; $('btnIngresar').textContent = 'Ingresando…';
+  try {
+    const r = await pedir({ accion: 'ingresar', voluntario: $('nombre').value, pin: $('pin').value });
+    if (!r.ok) { $('errIngreso').textContent = r.error; return; }
+    guardar('voluntario', r.voluntario); guardar('pase', r.pase);
+    $('pin').value = '';
+    abrirAsistencia(r.pase, r.voluntario);
+  } catch (e) {
+    $('errIngreso').textContent = 'Sin conexión. Intente de nuevo.';
+  } finally {
+    $('btnIngresar').disabled = false; $('btnIngresar').textContent = 'Ingresar';
+  }
+};
+
+// Si el pase venció o cambió el PIN, vuelve a la pantalla de ingreso
+function volverAlIngreso(mensaje) {
+  borrar('pase'); pase = null;
+  if (lector) lector.stop().catch(() => {});
+  lector = null;
+  $('pAsistencia').classList.add('oculto'); $('pIngreso').classList.remove('oculto');
+  $('errIngreso').textContent = mensaje || '';
+}
+$('btnSalir').onclick = () => volverAlIngreso('');
+
+// ===== Pantalla de asistencia =====
+async function abrirAsistencia(p, voluntario) {
+  pase = p;
+  $('pIngreso').classList.add('oculto'); $('pAsistencia').classList.remove('oculto');
+  const dia = new Date().toLocaleDateString('es-EC', { weekday: 'long', day: '2-digit', month: '2-digit' });
+  $('saludo').textContent = voluntario + ' · ' + dia.charAt(0).toUpperCase() + dia.slice(1);
+  contador(false);
+  try { await cargarOpciones(); } catch (e) { return volverAlIngreso('Sin conexión. Intente de nuevo.'); }
+  if (pase) iniciarCamara();                                   // solo si la sesión sigue vigente
+}
+
+// Trae las actividades del día y arma los botones (si hay una sola, queda elegida)
+async function cargarOpciones() {
+  const r = await pedir({ accion: 'opciones', pase });
+  if (r.estado === 'sin_sesion') return volverAlIngreso(r.error);
+  const ops = r.opciones || [];
+  $('sinOpciones').classList.toggle('oculto', ops.length > 0);
+  if (!ops.find(o => o.id === opcionElegida)) opcionElegida = ops.length ? ops[0].id : null;
+  $('opciones').innerHTML = '';
+  ops.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'opcion' + (o.id === opcionElegida ? ' activa' : '');
+    b.textContent = o.nombre;
+    if (o.tipo === 'Jornada') { const s = document.createElement('small'); s.textContent = 'Quedan ' + o.disponible + ' de ' + o.donado; b.appendChild(s); }
+    b.onclick = () => { opcionElegida = o.id; cargarOpciones(); };
+    $('opciones').appendChild(b);
+  });
+  $('opciones').classList.toggle('oculto', ops.length === 0);
+}
+
+// Enciende la cámara trasera y escucha los códigos QR
+function iniciarCamara() {
+  if (lector) return;
+  lector = new Html5Qrcode('lector');
+  lector.start({ facingMode: 'environment' }, { fps: 10, qrbox: 220 }, texto => alLeer(texto), () => {})
+    .catch(() => mostrarAviso('rojo', 'No se pudo abrir la cámara', 'Permita el acceso a la cámara en el navegador y recargue la página.'));
+}
+
+// Cuando la cámara lee un QR: evita leer el mismo carné dos veces seguidas
+function alLeer(texto) {
+  const ahora = Date.now();
+  if (ocupado || (texto === ultimoCodigo && ahora - ultimoMomento < 4000)) return;
+  ultimoCodigo = texto; ultimoMomento = ahora;
+  registrar(texto.trim());
+}
+
+// Registra la asistencia en la hoja y muestra el aviso verde o amarillo
+async function registrar(clave) {
+  if (!opcionElegida) return mostrarAviso('rojo', 'Sin actividad', 'Hoy no hay actividades abiertas.');
+  ocupado = true;
+  try {
+    const r = await pedir({ accion: 'registrar', pase, clave, opcion: opcionElegida });
+    if (r.estado === 'sin_sesion') return volverAlIngreso(r.error);
+    if (r.ok) {
+      sonido('ok'); contador(true);
+      const hora = new Date().toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+      mostrarAviso('verde', 'Registrado', r.nombre + ' · ' + hora);
+      if (r.disponible !== null) cargarOpciones();               // actualiza "Quedan X de Y"
+      setTimeout(() => { ocupado = false; }, 1500);
+    } else if (r.estado === 'duplicado') {
+      sonido('error'); mostrarAviso('amarillo', 'Ya fue registrado/a', r.mensaje + ' No se guardó de nuevo.', true);
+    } else {
+      sonido('error'); mostrarAviso('rojo', 'No se registró', r.mensaje || r.error); ocupado = false;
+    }
+  } catch (e) {
+    sonido('error'); mostrarAviso('rojo', 'Sin conexión', 'Vuelva a escanear el carné.'); ocupado = false;
+  }
+}
+
+// Dibuja el aviso; el amarillo exige tocar "Seguir escaneando"
+function mostrarAviso(color, titulo, texto, conBoton) {
+  const a = $('aviso');
+  a.className = 'aviso ' + color; a.innerHTML = '';
+  const t = document.createElement('div'); const b = document.createElement('b');
+  b.textContent = titulo; t.appendChild(b); t.appendChild(document.createTextNode(texto)); a.appendChild(t);
+  if (conBoton) {
+    const btn = document.createElement('button');
+    btn.className = 'btn'; btn.style.background = '#1F1F1F'; btn.textContent = 'Seguir escaneando';
+    btn.onclick = () => { a.classList.add('oculto'); ocupado = false; };
+    a.appendChild(btn);
+  }
+}
+
+// ===== Búsqueda de respaldo (sin carné) =====
+$('btnBuscar').onclick = () => { $('cajaBuscar').classList.toggle('oculto'); $('txtBuscar').focus(); };
+let espera;
+$('txtBuscar').oninput = () => {
+  clearTimeout(espera);
+  espera = setTimeout(async () => {
+    const texto = $('txtBuscar').value.trim();
+    $('resultados').innerHTML = '';
+    if (texto.length < 2 && !/^\d+$/.test(texto)) return;
+    const r = await pedir({ accion: 'buscar', pase, texto });
+    if (r.estado === 'sin_sesion') return volverAlIngreso(r.error);
+    (r.resultados || []).forEach(p => {
+      const b = document.createElement('button'); b.className = 'resultado';
+      b.textContent = p.nombre;
+      const s = document.createElement('small'); s.textContent = p.codigo; b.appendChild(s);
+      b.onclick = () => { $('cajaBuscar').classList.add('oculto'); $('txtBuscar').value = ''; $('resultados').innerHTML = ''; registrar(p.clave); };
+      $('resultados').appendChild(b);
+    });
+    if (!(r.resultados || []).length) $('resultados').textContent = 'Sin resultados.';
+  }, 400);
+};
+
+// ===== Al abrir la app: si ya tiene un pase guardado, entra directo =====
+(async () => {
+  const guardado = leer('pase');
+  if (guardado) abrirAsistencia(guardado, leer('voluntario') || '');
+})();
+</script>
+</body>
+</html>
