@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panel · Fundación Juntos por Ecuador</title>
+<!-- Panel de administrador · Elaborado por Claude · Revisado por Marcelo Peralta -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Librerías gratuitas: PDF y códigos QR (se generan en el propio iPad, sin enviar datos a terceros) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  :root { --teal:#1F7F77; --teal-osc:#1F6A64; --teal-claro:#EEF7F6; --amar-claro:#FDF6E1; --texto:#1F1F1F; --gris:#5A5A5A; --borde:#D4D4D4; --fondo:#F4F6F6; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Poppins',sans-serif; color:var(--texto); background:var(--fondo); }
+  .oculto { display:none !important; }
+  /* Ingreso */
+  .centro { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  .tarjeta { background:#fff; border:1px solid #E3E6E6; border-radius:20px; padding:24px; }
+  .ingreso { width:100%; max-width:440px; display:flex; flex-direction:column; gap:16px; padding:36px; }
+  .marca { text-align:center; font-weight:700; font-size:24px; line-height:1.2; }
+  .rayas { display:flex; gap:4px; justify-content:center; margin-top:6px; } .rayas i { width:22px; height:6px; border-radius:3px; display:block; }
+  label { font-size:14px; font-weight:500; display:block; margin-bottom:6px; }
+  input, select { width:100%; height:50px; border:1.5px solid var(--borde); border-radius:12px; padding:0 14px; font:inherit; font-size:16px; background:#fff; }
+  input:focus, select:focus { outline:2px solid var(--teal); border-color:var(--teal); }
+  .btn { height:50px; border:none; border-radius:12px; background:var(--teal); color:#fff; font:inherit; font-size:15px; font-weight:600; padding:0 20px; cursor:pointer; }
+  .btn:disabled { opacity:.6; }
+  .btn-borde { background:#fff; color:var(--teal); border:2px solid var(--teal); }
+  .btn-gris { background:#fff; color:#3D3D3D; border:1.5px solid var(--borde); font-weight:400; }
+  .btn-chico { height:40px; font-size:13px; padding:0 14px; }
+  .error { color:#A8164A; font-size:14px; min-height:20px; }
+  .nota { font-size:12px; color:var(--gris); line-height:1.5; }
+  /* Estructura del panel */
+  .panel { display:flex; flex-wrap:wrap; min-height:100vh; }
+  nav { flex:1 1 220px; max-width:240px; background:#fff; border-right:1px solid #E3E6E6; padding:24px 14px; display:flex; flex-direction:column; gap:4px; }
+  nav .item { height:46px; border:none; border-radius:12px; background:transparent; color:#3D3D3D; font:inherit; font-size:15px; text-align:left; padding:0 14px; cursor:pointer; }
+  nav .item.activo { background:var(--teal-claro); color:var(--teal-osc); font-weight:600; }
+  main { flex:999 1 560px; min-width:0; padding:28px; display:flex; flex-direction:column; gap:18px; }
+  @media (max-width:760px) { nav { max-width:none; flex-direction:row; flex-wrap:wrap; border-right:none; border-bottom:1px solid #E3E6E6; } nav .item { height:40px; } main { padding:16px; } }
+  h1 { margin:0; font-size:24px; } h2 { margin:0 0 6px; font-size:19px; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:12px; }
+  .kpi .n { font-size:30px; font-weight:700; } .kpi .t { font-size:13px; color:var(--gris); }
+  .barra { height:12px; border-radius:6px; background:#E6EFEE; overflow:hidden; } .barra div { height:12px; background:var(--teal); }
+  .abierta { border:2px solid #3FB3A8; }
+  .fila-botones { display:flex; gap:10px; flex-wrap:wrap; }
+  .tabla { width:100%; border-collapse:collapse; font-size:14px; }
+  .tabla th { text-align:left; font-size:12px; color:var(--gris); font-weight:500; padding:8px 6px; border-bottom:1px solid #EEE; }
+  .tabla td { padding:9px 6px; border-bottom:1px solid #F2F2F2; }
+  .caja-tabla { overflow-x:auto; }
+  .dos { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:18px; align-items:start; }
+  .pin { background:var(--teal-claro); border-radius:16px; padding:22px; text-align:center; font-size:40px; font-weight:700; letter-spacing:6px; color:var(--teal-osc); }
+  .aviso { background:var(--amar-claro); border-radius:12px; padding:12px; font-size:14px; color:#5C4400; }
+  .temporal { font-family:monospace; font-size:22px; letter-spacing:2px; background:#fff; padding:6px 10px; border-radius:8px; display:inline-block; margin-top:6px; }
+  .enlace { background:none; border:none; color:var(--teal); font:inherit; font-size:13px; cursor:pointer; padding:4px; text-decoration:underline; }
+</style>
+</head>
+<body>
+
+<!-- ===== INGRESO ===== -->
+<section id="vIngreso" class="centro">
+  <div class="tarjeta ingreso">
+    <div><div class="marca">Fundación<br>Juntos por Ecuador</div><div class="rayas"><i style="background:#3FB3A8"></i><i style="background:#F2C12E"></i><i style="background:#E2366B"></i></div></div>
+    <div style="text-align:center"><h1>Panel de administrador</h1><div class="nota">Ingrese con su clave personal</div></div>
+    <div><label for="inNombre">Nombre</label><input id="inNombre" autocomplete="username"></div>
+    <div><label for="inClave">Clave</label><input id="inClave" type="password" autocomplete="current-password"></div>
+    <div id="errIngreso" class="error" role="alert"></div>
+    <button id="btnIngresar" class="btn">Ingresar</button>
+    <div class="nota" style="text-align:center">Por seguridad, 5 intentos fallidos bloquean el acceso por 15 minutos.</div>
+  </div>
+</section>
+
+<!-- ===== CAMBIO DE CLAVE (primer ingreso o clave restablecida) ===== -->
+<section id="vClave" class="centro oculto">
+  <div class="tarjeta ingreso">
+    <h1>Cree su clave personal</h1>
+    <div class="nota">Mínimo 8 caracteres. No la comparta con nadie.</div>
+    <div><label for="clave1">Nueva clave</label><input id="clave1" type="password" autocomplete="new-password"></div>
+    <div><label for="clave2">Repita la clave</label><input id="clave2" type="password" autocomplete="new-password"></div>
+    <div id="errClave" class="error" role="alert"></div>
+    <button id="btnClave" class="btn">Guardar clave</button>
+  </div>
+</section>
+
+<!-- ===== PANEL ===== -->
+<section id="vPanel" class="panel oculto">
+  <nav id="menu">
+    <div style="padding:0 10px 14px"><div class="nota">Fundación</div><div style="font-weight:700; font-size:17px">Juntos por Ecuador</div></div>
+    <button class="item" data-vista="inicio">Inicio</button>
+    <button class="item" data-vista="jornadas">Jornadas</button>
+    <button class="item" data-vista="semanal">Asistencia</button>
+    <button class="item" data-vista="carnes">Carnés QR</button>
+    <button class="item" data-vista="pin">PIN voluntarios</button>
+    <button class="item" data-vista="admins">Administradores</button>
+    <button class="item" data-vista="proyectos">Proyectos</button>
+    <div style="margin-top:auto; padding:14px 10px 0; border-top:1px solid #EEE">
+      <div id="quien" style="font-weight:600; font-size:14px"></div>
+      <button id="btnSalir" class="enlace" style="padding:0">Salir</button>
+    </div>
+  </nav>
+  <main id="contenido"></main>
+</section>
+
+<script>
+// ===== AJUSTE: pegue aquí la URL del puente (la misma de la app de voluntarios) =====
+const PUENTE = 'https://script.google.com/macros/s/AKfycbwdm9mUn6L2OYQRqixra3nZUzDMVkbCRj759JhKeS7odnUfX3vFszUMsFKGdKksIurhrg/exec';
+
+// ===== Utilidades =====
+const $ = id => document.getElementById(id);
+let pase = null, yo = null, jornadaVista = null;
+
+// Guarda y lee datos en este dispositivo sin romper la app si el navegador lo bloquea
+function guardar(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} }
+function leer(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+function borrar(k) { try { sessionStorage.removeItem(k); } catch (e) {} }
+
+// Evita que un nombre con símbolos rompa la pantalla
+function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// Envía una acción al puente (por POST, así la clave no queda en la dirección web)
+async function api(datos) {
+  datos.pase = pase;
+  const r = await fetch(PUENTE, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(datos) });
+  const j = await r.json();
+  if (j.estado === 'sin_sesion') { salir(j.error); throw new Error('sin sesión'); }
+  return j;
+}
+
+// Muestra un mensaje de carga o de error dentro del contenido
+function cargando() { $('contenido').innerHTML = '<div class="nota">Cargando…</div>'; }
+function fallo(e) { if (e.message !== 'sin sesión') $('contenido').innerHTML = '<div class="aviso">No se pudo conectar. Revise el internet e intente de nuevo.</div>'; }
+
+// ===== Ingreso =====
+$('btnIngresar').onclick = async () => {
+  $('errIngreso').textContent = ''; $('btnIngresar').disabled = true;
+  try {
+    const r = await api({ accion: 'adm_ingresar', nombre: $('inNombre').value, clave: $('inClave').value });
+    $('inClave').value = '';
+    if (!r.ok) { $('errIngreso').textContent = r.error; return; }
+    pase = r.pase; yo = { nombre: r.nombre, rol: r.rol };
+    guardar('adm_pase', pase); guardar('adm_yo', JSON.stringify(yo));
+    if (r.cambiar) mostrar('vClave'); else abrirPanel();
+  } catch (e) { $('errIngreso').textContent = 'No se pudo conectar. Intente de nuevo.'; }
+  finally { $('btnIngresar').disabled = false; }
+};
+$('inClave').onkeydown = e => { if (e.key === 'Enter') $('btnIngresar').click(); };
+
+// Cambio obligatorio de la clave temporal
+$('btnClave').onclick = async () => {
+  $('errClave').textContent = '';
+  if ($('clave1').value.length < 8) return $('errClave').textContent = 'Mínimo 8 caracteres.';
+  if ($('clave1').value !== $('clave2').value) return $('errClave').textContent = 'Las claves no coinciden.';
+  const r = await api({ accion: 'adm_cambiarClave', nueva: $('clave1').value });
+  $('clave1').value = $('clave2').value = '';
+  if (!r.ok) return $('errClave').textContent = r.error;
+  abrirPanel();
+};
+
+// Cambia entre las pantallas de ingreso, clave y panel
+function mostrar(id) { ['vIngreso', 'vClave', 'vPanel'].forEach(v => $(v).classList.toggle('oculto', v !== id)); }
+function salir(mensaje) { borrar('adm_pase'); borrar('adm_yo'); pase = null; mostrar('vIngreso'); $('errIngreso').textContent = mensaje || ''; }
+$('btnSalir').onclick = () => salir('');
+
+function abrirPanel() {
+  mostrar('vPanel');
+  $('quien').textContent = yo.nombre + ' · ' + yo.rol;
+  ir('inicio');
+}
+
+// Menú: abre cada sección
+document.querySelectorAll('#menu .item').forEach(b => b.onclick = () => ir(b.dataset.vista));
+function ir(vista) {
+  document.querySelectorAll('#menu .item').forEach(b => b.classList.toggle('activo', b.dataset.vista === vista));
+  ({ inicio: vInicio, jornadas: vJornadas, semanal: vSemanal, carnes: vCarnes, pin: vPin, admins: vAdmins, proyectos: vProyectos })[vista]();
+}
+
+// Tarjeta de una jornada abierta con su barra de avance
+function tarjetaJornada(j) {
+  const pct = j.donado ? Math.min(100, Math.round(j.entregado * 100 / j.donado)) : 0;
+  return `<div class="tarjeta abierta" style="display:flex; flex-direction:column; gap:12px">
+    <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap">
+      <div><div class="nota" style="color:var(--teal-osc); font-weight:600">ABIERTA · ${esc(j.id)} · ${esc(j.fecha)}</div><h2>${esc(j.proyecto)}</h2></div>
+      <div style="text-align:right"><b style="font-size:28px">${j.entregado}</b> de ${j.donado} entregados<br><span style="color:var(--teal-osc); font-weight:600">Quedan ${j.donado - j.entregado}</span></div>
+    </div>
+    <div class="barra"><div style="width:${pct}%"></div></div>
+    <div class="fila-botones">
+      <button class="btn btn-borde btn-chico" onclick="verEntregas('${esc(j.id)}')">Ver quiénes recibieron</button>
+      <button class="btn btn-gris btn-chico" onclick="cerrar('${esc(j.id)}')">Cerrar jornada</button>
+    </div></div>`;
+}
+
+// ===== INICIO =====
+async function vInicio() {
+  cargando();
+  try {
+    const d = await api({ accion: 'adm_inicio' });
+    const abiertas = d.jornadas.filter(j => j.estado === 'Abierta');
+    const anteriores = d.jornadas.filter(j => j.estado !== 'Abierta').slice(0, 6);
+    $('contenido').innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:10px; flex-wrap:wrap">
+        <div><div class="nota">${esc(d.hoy)}</div><h1>Hola, ${esc(yo.nombre.split(' ')[0])}</h1></div>
+        <button class="btn" onclick="ir('jornadas')">+ Abrir jornada</button>
+      </div>
+      <div class="kpis">
+        <div class="tarjeta kpi"><div class="t">Asistencia de hoy</div><div class="n">${d.asistenciaHoy}</div><div class="t">proyectos fijos</div></div>
+        <div class="tarjeta kpi"><div class="t">Jornadas abiertas</div><div class="n">${abiertas.length}</div></div>
+        <div class="tarjeta kpi"><div class="t">PIN del mes</div><div class="n" style="letter-spacing:2px">${esc(String(d.pin).slice(0, 2))}•• ••</div><div class="t">Cambia solo el día 1</div></div>
+        <div class="tarjeta kpi"><div class="t">Personas activas</div><div class="n">${d.activas}</div><div class="t" style="color:#7A5A00">${d.pendientes} pendientes de revisar</div></div>
+      </div>
+      ${abiertas.map(tarjetaJornada).join('')}
+      <div class="tarjeta"><h2>Jornadas anteriores</h2><div class="caja-tabla"><table class="tabla">
+        <tr><th>ID</th><th>Proyecto</th><th>Fecha</th><th>Entregado</th><th></th></tr>
+        ${anteriores.map(j => `<tr><td>${esc(j.id)}</td><td>${esc(j.proyecto)}</td><td>${esc(j.fecha)}</td><td>${j.entregado} de ${j.donado}</td><td><button class="enlace" onclick="verEntregas('${esc(j.id)}')">Ver</button></td></tr>`).join('') || '<tr><td colspan="5" class="nota">Todavía no hay jornadas cerradas.</td></tr>'}
+      </table></div></div>`;
+  } catch (e) { fallo(e); }
+}
+
+// Cierra una jornada después de confirmar
+async function cerrar(id) {
+  if (!confirm('¿Cerrar la jornada ' + id + '? Ya no aparecerá en la app de voluntarios.')) return;
+  const r = await api({ accion: 'adm_cerrarJornada', id });
+  if (!r.ok) alert(r.error);
+  ir(document.querySelector('#menu .item.activo').dataset.vista);   // recarga la sección actual
+}
+function verEntregas(id) { jornadaVista = id; ir('jornadas'); }
+
+// ===== JORNADAS =====
+async function vJornadas() {
+  cargando();
+  try {
+    const d = await api({ accion: 'adm_jornadas' });
+    const opciones = d.proyectos.filter(p => p.tipo === 'Jornada' && p.activo === 'Sí');
+    if (!jornadaVista && d.jornadas.length) jornadaVista = d.jornadas[0].id;
+    const hoy = new Date(); const iso = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0') + '-' + String(hoy.getDate()).padStart(2, '0');
+    $('contenido').innerHTML = `
+      <h1>Jornadas</h1>
+      <div class="dos">
+        <div class="tarjeta" style="display:flex; flex-direction:column; gap:14px">
+          <h2>Abrir jornada</h2>
+          <div><label for="jProy">Proyecto</label><select id="jProy">${opciones.map(p => `<option>${esc(p.nombre)}</option>`).join('')}</select></div>
+          <div><label for="jFecha">Fecha</label><input id="jFecha" type="date" value="${iso}"></div>
+          <div><label for="jCant">Cantidad donada</label><input id="jCant" type="number" min="1" inputmode="numeric"></div>
+          <div class="nota">Se entrega 1 unidad por abuelito. Cada persona recibe una sola vez por jornada.</div>
+          <div id="jError" class="error"></div>
+          <button id="jAbrir" class="btn">Abrir jornada</button>
+        </div>
+        <div class="tarjeta" style="display:flex; flex-direction:column; gap:12px">
+          <h2>Quién recibió</h2>
+          <div><label for="jSel">Jornada</label><select id="jSel">${d.jornadas.map(j => `<option value="${esc(j.id)}" ${j.id === jornadaVista ? 'selected' : ''}>${esc(j.id)} · ${esc(j.proyecto)} · ${esc(j.estado)}</option>`).join('')}</select></div>
+          <div id="jResumen"></div>
+          <input id="jBuscar" placeholder="Buscar por nombre o código…" aria-label="Buscar por nombre o código">
+          <div id="jLista" class="caja-tabla"></div>
+          <div class="fila-botones"><button id="jPdf" class="btn btn-borde btn-chico">Descargar PDF para el donante</button></div>
+        </div>
+      </div>`;
+    $('jAbrir').onclick = async () => {
+      $('jError').textContent = ''; $('jAbrir').disabled = true;
+      try {
+        const r = await api({ accion: 'adm_abrirJornada', proyecto: $('jProy').value, fecha: $('jFecha').value, cantidad: $('jCant').value });
+        if (!r.ok) { $('jError').textContent = r.error; return; }
+        jornadaVista = r.id; vJornadas();
+      } finally { $('jAbrir').disabled = false; }
+    };
+    $('jSel').onchange = () => { jornadaVista = $('jSel').value; cargarEntregas(d.jornadas); };
+    if (jornadaVista) cargarEntregas(d.jornadas);
+  } catch (e) { fallo(e); }
+}
+
+// Carga la lista de quiénes recibieron en la jornada elegida
+async function cargarEntregas(jornadas) {
+  const j = jornadas.find(x => x.id === jornadaVista);
+  if (!j) return;
+  $('jResumen').innerHTML = `<b style="font-size:20px">${j.entregado}</b> de ${j.donado} entregados · <span style="color:var(--teal-osc); font-weight:600">Quedan ${j.donado - j.entregado}</span> · ${esc(j.estado)}
+    ${j.estado === 'Abierta' ? `<button class="enlace" onclick="cerrar('${esc(j.id)}')">Cerrar jornada</button>` : ''}`;
+  $('jLista').innerHTML = '<div class="nota">Cargando…</div>';
+  const r = await api({ accion: 'adm_entregas', id: j.id });
+  const pintar = () => {
+    const t = $('jBuscar').value.toLowerCase();
+    const filas = r.entregas.filter(e => (e.nombre + ' ' + e.codigo).toLowerCase().includes(t));
+    $('jLista').innerHTML = `<table class="tabla"><tr><th>Hora</th><th>Código</th><th>Nombre</th><th>Voluntario</th></tr>
+      ${filas.map(e => `<tr><td>${esc(e.hora)}</td><td>${esc(e.codigo)}</td><td>${esc(e.nombre)}</td><td>${esc(e.voluntario)}</td></tr>`).join('') || '<tr><td colspan="4" class="nota">Sin entregas todavía.</td></tr>'}</table>`;
+  };
+  $('jBuscar').oninput = pintar; pintar();
+  $('jPdf').onclick = () => pdfDonante(j, r.entregas);
+}
+
+// PDF con la lista de entregas para el donante
+function pdfDonante(j, entregas) {
+  const doc = new jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+  const cabecera = () => {
+    doc.setFillColor(31, 127, 119); doc.rect(0, 0, 210, 6, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('Fundación Juntos por Ecuador', 15, 18);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(11);
+    doc.text(`Entregas de la jornada ${j.id} · ${j.proyecto} · ${j.fecha}`, 15, 25);
+    doc.text(`Donado: ${j.donado}   Entregado: ${j.entregado}   Disponible: ${j.donado - j.entregado}`, 15, 31);
+    doc.setFontSize(9); doc.setTextColor(90);
+    doc.text('N.º', 15, 40); doc.text('Fecha', 25, 40); doc.text('Hora', 50, 40); doc.text('Código', 65, 40); doc.text('Nombre', 90, 40); doc.text('Voluntario', 165, 40);
+    doc.setTextColor(0); doc.line(15, 42, 195, 42);
+  };
+  cabecera(); let y = 48;
+  entregas.forEach((e, i) => {
+    if (y > 280) { doc.addPage(); cabecera(); y = 48; }
+    doc.setFontSize(9);
+    doc.text(String(i + 1), 15, y); doc.text(e.fecha, 25, y); doc.text(e.hora, 50, y); doc.text(e.codigo || '', 65, y);
+    doc.text(doc.splitTextToSize(e.nombre, 72)[0], 90, y); doc.text(doc.splitTextToSize(e.voluntario, 30)[0], 165, y);
+    y += 6;
+  });
+  doc.setFontSize(8); doc.setTextColor(110);
+  doc.text('Generado desde la App de Asistencia · ' + new Date().toLocaleString('es-EC'), 15, 292);
+  doc.save(`Entregas_${j.id}.pdf`);
+}
+
+// ===== ASISTENCIA =====
+async function vSemanal() {
+  cargando();
+  try {
+    const d = await api({ accion: 'adm_semanal' });
+    $('contenido').innerHTML = `<h1>Asistencia</h1>
+      <div class="tarjeta"><h2>Asistentes por fecha (proyectos fijos)</h2><div class="caja-tabla"><table class="tabla">
+      <tr><th>Fecha</th><th>Proyecto</th><th>Asistentes</th></tr>
+      ${d.filas.map(f => `<tr><td>${esc(f.fecha)}</td><td>${esc(f.proyecto)}</td><td><b>${f.total}</b></td></tr>`).join('') || '<tr><td colspan="3" class="nota">Todavía no hay asistencias.</td></tr>'}
+      </table></div><p class="nota">El detalle por persona y por semana está en la pestaña Resumen de la hoja de Google Sheets.</p></div>`;
+  } catch (e) { fallo(e); }
+}
+
+// ===== CARNÉS QR =====
+let personas = [];
+async function vCarnes() {
+  cargando();
+  try {
+    personas = (await api({ accion: 'adm_personas' })).personas;
+    const conCodigo = personas.filter(p => p.codigo);
+    $('contenido').innerHTML = `<h1>Carnés QR</h1>
+      <div class="dos">
+        <div class="tarjeta" style="display:flex; flex-direction:column; gap:14px">
+          <h2>Todos los carnés</h2>
+          <div class="nota">PDF para imprimir en hojas A4, con 8 carnés por hoja.</div>
+          <button class="btn" onclick="pdfCarnes(personas.filter(p => p.codigo))">Generar todos (${conCodigo.length})</button>
+          ${personas.length - conCodigo.length ? `<div class="aviso">${personas.length - conCodigo.length} personas sin código hasta confirmar su N.º de carné.</div>` : ''}
+        </div>
+        <div class="tarjeta" style="display:flex; flex-direction:column; gap:12px">
+          <h2>Reimprimir uno</h2>
+          <input id="cBuscar" placeholder="Nombre o N.º de carné…" aria-label="Buscar persona">
+          <div id="cLista"></div>
+        </div>
+      </div>`;
+    $('cBuscar').oninput = () => {
+      const t = $('cBuscar').value.toLowerCase().trim();
+      const r = t ? conCodigo.filter(p => p.carnet === t || (p.apellidos + ' ' + p.nombres).toLowerCase().includes(t)).slice(0, 8) : [];
+      $('cLista').innerHTML = r.map(p => `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #F2F2F2; gap:8px">
+        <div><b>${esc(p.apellidos)} ${esc(p.nombres)}</b><div class="nota">${esc(p.codigo)}</div></div>
+        <button class="btn btn-borde btn-chico" onclick="pdfCarnes(personas.filter(x => x.codigo === '${esc(p.codigo)}'))">Generar carné</button></div>`).join('');
+    };
+  } catch (e) { fallo(e); }
+}
+
+// Dibuja el código QR como cuadritos (nítido al imprimir)
+function dibujarQR(doc, texto, x, y, tam) {
+  const qr = qrcode(0, 'M'); qr.addData(texto); qr.make();
+  const n = qr.getModuleCount(), c = tam / n;
+  doc.setFillColor(0, 0, 0);
+  for (let f = 0; f < n; f++) for (let k = 0; k < n; k++) if (qr.isDark(f, k)) doc.rect(x + k * c, y + f * c, c + 0.02, c + 0.02, 'F');
+}
+
+// PDF de carnés: 8 por hoja A4 (2 columnas x 4 filas), listos para recortar
+function pdfCarnes(lista) {
+  if (!lista.length) return;
+  const doc = new jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 90, H = 62, xs = [12, 108], ys = [10, 80, 150, 220];
+  lista.forEach((p, i) => {
+    const pos = i % 8;
+    if (i && pos === 0) doc.addPage();
+    const x = xs[pos % 2], y = ys[Math.floor(pos / 2)];
+    doc.setDrawColor(180); doc.setLineWidth(0.3); doc.roundedRect(x, y, W, H, 3, 3);           // borde para recortar
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(31, 31, 31);
+    doc.text('Fundación Juntos por Ecuador', x + 5, y + 8);
+    [[63, 179, 168], [242, 193, 46], [226, 54, 107]].forEach((col, k) => { doc.setFillColor(...col); doc.roundedRect(x + 5 + k * 8, y + 10.5, 7, 1.6, 0.8, 0.8, 'F'); });
+    dibujarQR(doc, p.codigo, x + 5, y + 16, 40);
+    doc.setFontSize(11); doc.text(doc.splitTextToSize(p.apellidos, 38), x + 49, y + 22);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text(doc.splitTextToSize(p.nombres, 38), x + 49, y + 33);
+    doc.setFontSize(8); doc.setTextColor(90); doc.text('Carné N.º ' + p.carnet, x + 49, y + 46);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(31, 127, 119); doc.text(p.codigo, x + 49, y + 53);
+  });
+  doc.save(lista.length === 1 ? `Carne_${lista[0].codigo}.pdf` : 'Carnes_JPE.pdf');
+}
+
+// ===== PIN =====
+async function vPin() {
+  cargando();
+  try {
+    const d = await api({ accion: 'adm_pin' });
+    const pin = String(d.pin).replace(/(\d{3})(\d{3})/, '$1 $2');
+    const mes = new Date().toLocaleDateString('es-EC', { month: 'long' });
+    const texto = `PIN de voluntarios para ${mes}: ${pin}\nApp: ${location.origin}${location.pathname.replace('admin.html', '')}`;
+    $('contenido').innerHTML = `<h1>PIN de voluntarios</h1>
+      <div class="tarjeta" style="max-width:480px; display:flex; flex-direction:column; gap:14px">
+        <div class="pin">${esc(pin)}</div>
+        <div class="nota" style="text-align:center">Vigente desde ${esc(d.fecha)} · cambia solo el día 1 de cada mes</div>
+        <a class="btn" style="display:flex; align-items:center; justify-content:center; text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(texto)}">Compartir por WhatsApp</a>
+        <button id="pNuevo" class="btn btn-gris">Generar nuevo ahora (emergencia)</button>
+        <div class="nota">Al cambiar el PIN, los voluntarios deben ingresar el nuevo la próxima vez que abran la app.</div>
+      </div>`;
+    $('pNuevo').onclick = async () => {
+      if (!confirm('¿Generar un PIN nuevo ahora? El actual dejará de funcionar de inmediato.')) return;
+      await api({ accion: 'adm_nuevoPin' }); vPin();
+    };
+  } catch (e) { fallo(e); }
+}
+
+// ===== ADMINISTRADORES =====
+async function vAdmins() {
+  cargando();
+  try {
+    const d = await api({ accion: 'adm_admins' });
+    $('contenido').innerHTML = `<h1>Administradores</h1>
+      <div class="dos">
+        <div class="tarjeta"><h2>Lista</h2>
+          ${d.admins.map(a => `<div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #F2F2F2; gap:8px; flex-wrap:wrap">
+            <div><b>${esc(a.nombre)}</b><div class="nota">${esc(a.rol)} · ${a.activo === 'Sí' ? 'Activo' : 'Sin acceso'}</div></div>
+            ${d.esDueno && a.rol !== 'Dueño' ? `<div><button class="enlace" onclick="restablecer('${esc(a.nombre)}')">Restablecer clave</button>
+              ${a.activo === 'Sí' ? `<button class="enlace" style="color:#A8164A" onclick="quitar('${esc(a.nombre)}')">Quitar acceso</button>` : ''}</div>` : ''}
+          </div>`).join('')}
+          <div id="aTemp"></div>
+        </div>
+        ${d.esDueno ? `<div class="tarjeta" style="display:flex; flex-direction:column; gap:12px">
+          <h2>Agregar administrador</h2>
+          <div><label for="aNombre">Nombre y apellido</label><input id="aNombre"></div>
+          <div id="aError" class="error"></div>
+          <button id="aAgregar" class="btn">+ Agregar</button>
+          <div class="nota">Se crea una clave temporal. Entréguela en persona; la primera vez se le pedirá cambiarla.</div>
+        </div>` : '<div class="nota">Solo el dueño puede agregar o quitar administradores.</div>'}
+      </div>`;
+    if (d.esDueno) $('aAgregar').onclick = async () => {
+      const r = await api({ accion: 'adm_agregarAdmin', nombre: $('aNombre').value });
+      if (!r.ok) return $('aError').textContent = r.error;
+      await vAdmins(); mostrarTemporal(r.temporal);
+    };
+  } catch (e) { fallo(e); }
+}
+function mostrarTemporal(clave) {
+  $('aTemp').innerHTML = `<div class="aviso" style="margin-top:12px">Clave temporal (anótela ahora, no se volverá a mostrar):<br><span class="temporal">${esc(clave)}</span></div>`;
+}
+async function restablecer(nombre) {
+  if (!confirm('¿Crear una clave temporal nueva para ' + nombre + '?')) return;
+  const r = await api({ accion: 'adm_restablecer', nombre });
+  if (!r.ok) return alert(r.error);
+  await vAdmins(); mostrarTemporal(r.temporal);
+}
+async function quitar(nombre) {
+  if (!confirm('¿Quitar el acceso de ' + nombre + ' al panel?')) return;
+  const r = await api({ accion: 'adm_quitar', nombre });
+  if (!r.ok) alert(r.error);
+  vAdmins();
+}
+
+// ===== PROYECTOS =====
+async function vProyectos() {
+  cargando();
+  try {
+    const d = await api({ accion: 'adm_proyectos' });
+    const dias = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    $('contenido').innerHTML = `<h1>Proyectos</h1>
+      <div class="dos">
+        <div class="tarjeta"><h2>Lista</h2><div class="caja-tabla"><table class="tabla">
+          <tr><th>Proyecto</th><th>Tipo</th><th>Día</th><th>Activo</th></tr>
+          ${d.proyectos.map((p, i) => `<tr><td>${esc(p.nombre)}</td><td>${esc(p.tipo)}</td><td>${esc(p.dia || '—')}</td>
+            <td><button class="btn btn-chico ${p.activo === 'Sí' ? '' : 'btn-gris'}" onclick="cambiarActivo(${i})">${p.activo === 'Sí' ? 'Sí' : 'No'}</button></td></tr>`).join('')}
+        </table></div><p class="nota">Toque Sí/No para activar o desactivar un proyecto.</p></div>
+        <div class="tarjeta" style="display:flex; flex-direction:column; gap:12px">
+          <h2>Nuevo proyecto</h2>
+          <div><label for="pNombre">Nombre</label><input id="pNombre" placeholder="Ej.: Taller de manualidades"></div>
+          <div><label for="pTipo">Tipo</label><select id="pTipo"><option>Jornada</option><option>Fijo</option></select></div>
+          <div id="pDiaCaja" class="oculto"><label for="pDia">Día</label><select id="pDia">${dias.map(x => `<option>${x}</option>`).join('')}</select></div>
+          <div class="nota">Fijo: se repite cada semana en su día. Jornada: se abre cuando hay una donación.</div>
+          <div id="pError" class="error"></div>
+          <button id="pGuardar" class="btn">Guardar proyecto</button>
+        </div>
+      </div>`;
+    window._proyectos = d.proyectos;
+    $('pTipo').onchange = () => $('pDiaCaja').classList.toggle('oculto', $('pTipo').value !== 'Fijo');
+    $('pGuardar').onclick = async () => {
+      const r = await api({ accion: 'adm_guardarProyecto', nombre: $('pNombre').value, tipo: $('pTipo').value, dia: $('pDia').value, activo: 'Sí' });
+      if (!r.ok) return $('pError').textContent = r.error;
+      vProyectos();
+    };
+  } catch (e) { fallo(e); }
+}
+async function cambiarActivo(i) {
+  const p = window._proyectos[i];
+  const r = await api({ accion: 'adm_guardarProyecto', nombre: p.nombre, tipo: p.tipo, dia: p.dia, activo: p.activo === 'Sí' ? 'No' : 'Sí' });
+  if (!r.ok) alert(r.error);
+  vProyectos();
+}
+
+// ===== Al abrir: si la sesión sigue abierta en esta pestaña, entra directo =====
+(() => {
+  const p = leer('adm_pase'), y = leer('adm_yo');
+  if (p && y) { pase = p; yo = JSON.parse(y); abrirPanel(); }
+})();
+</script>
+</body>
+</html>
